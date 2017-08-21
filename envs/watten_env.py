@@ -72,7 +72,7 @@ class WattenEnv(gym.Env):
 
         self.current_player = 1 - self.current_player
 
-        return self._obs(), reward, reward < 0 or self._is_done(), {}
+        return self._obs(), reward, len(reward) > 0 and reward[0] < 0 or self._is_done(), {}
 
     def _is_done(self):
         return len(self.players[0].hand_cards) + len(self.players[1].hand_cards) == 0
@@ -85,12 +85,16 @@ class WattenEnv(gym.Env):
 
             if self.table_card is None:
                 self.table_card = card
+                return []
             else:
                 self.lastTrick = [self.table_card, card]
                 self.table_card = None
-            return 0
+                return [0, 0]
         else:
-            return -1
+            if self.table_card is None:
+                return [-1]
+            else:
+                return [-1]
 
     def _reset(self):
         self.cards_left = self.cards[:]
