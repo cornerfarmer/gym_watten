@@ -15,14 +15,14 @@ class Color(Enum):
 
 
 class Value(Enum):
-    SAU = 1
-    KOENIG = 2
-    OBER = 3
-    UNTER = 4
-    ZEHN = 5
-    NEUN = 6
-    ACHT = 7
-    SIEBEN = 8
+    SAU = 8
+    KOENIG = 7
+    OBER = 6
+    UNTER = 5
+    ZEHN = 4
+    NEUN = 3
+    ACHT = 2
+    SIEBEN = 1
 
 
 class Card:
@@ -46,6 +46,8 @@ class Player:
             return [1, 0]
         elif self.tricks == 2:
             return [0, 1]
+        elif self.tricks == 3:
+            return [1, 1]
 
 class WattenEnv(gym.Env):
     metadata = {'render.modes': ['human', 'rgb_array']}
@@ -70,31 +72,67 @@ class WattenEnv(gym.Env):
 
         reward = self._act(action, self.players[self.current_player])
 
-        self.current_player = 1 - self.current_player
-
         return self._obs(), reward, len(reward) > 0 and reward[0] < 0 or self._is_done(), {}
 
     def _is_done(self):
-        return len(self.players[0].hand_cards) + len(self.players[1].hand_cards) == 0
+        return len(self.players[0].hand_cards) + len(self.players[1].hand_cards) == 0 or self.players[0].tricks == 3 or self.players[1].tricks == 3
 
     def _act(self, action, player):
-        card = self.cards[action]
+        if action is None:
+            card = player.hand_cards[0]
+        else:
+            card = self.cards[action]
 
         if card in player.hand_cards:
             player.hand_cards.remove(card)
 
             if self.table_card is None:
                 self.table_card = card
+
+                self.current_player = 1 - self.current_player
+
                 return []
             else:
+
+                reward = [0, 0]
+
+                better_player = self._match(self.table_card, card)
+                reward[1 - better_player] = 1
+
+                if better_player == 0:
+                    self.current_player = 1 - self.current_player
+
+                self.players[self.current_player].tricks += 1
+                if self.players[self.current_player].tricks == 3:
+                    reward[1 - better_player] += 5
+
                 self.lastTrick = [self.table_card, card]
                 self.table_card = None
-                return [0, 0]
+                return reward
         else:
             if self.table_card is None:
                 return [-1]
             else:
                 return [-1]
+
+    def _match(self, first_card, second_card):
+        if self._get_value(first_card, first_card) >= self._get_value(second_card, first_card):
+            return 0
+        else:
+            return 1
+
+    def _get_value(self, card, first_card):
+        if card.color is Color.HERZ and card.value is Value.KOENIG:
+            return 11
+        elif card.color is Color.SCHELLN and card.value is Value.SIEBEN:
+            return 10
+        elif card.color is Color.EICHEL and card.value is Value.SIEBEN:
+            return 9
+
+        if card.color is first_card.color:
+            return int(card.value.value)
+        else:
+            return 0
 
     def _reset(self):
         self.cards_left = self.cards[:]
