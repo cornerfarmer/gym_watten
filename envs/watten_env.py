@@ -7,6 +7,8 @@ from enum import Enum
 
 from gym.envs.classic_control import rendering
 
+import numpy as np
+
 class Color(Enum):
     EICHEL = 1
     GRUEN = 2
@@ -26,9 +28,10 @@ class Value(Enum):
 
 
 class Card:
-    def __init__(self, color, value):
+    def __init__(self, color, value, id):
         self.color = color
         self.value = value
+        self.id = id
 
 class Player:
 
@@ -38,6 +41,13 @@ class Player:
     def reset(self):
         self.hand_cards = []
         self.tricks = 0
+
+    def get_state(self):
+        return self.hand_cards[:], self.tricks
+
+    def set_state(self, state):
+        self.hand_cards = state[0][:]
+        self.tricks = state[1]
 
     def get_trick_array(self):
         if self.tricks == 0:
@@ -61,12 +71,16 @@ class WattenEnv(gym.Env):
         self.cards = []
         for c in Color:
             for v in Value:
-                self.cards.append(Card(c, v))
+                self.cards.append(Card(c, v, len(self.cards)))
         self.players = [Player(), Player()]
         self.current_player = 0
         self.table_card = None
         self.viewer = None
         self.lastTrick = None
+        self.obs = np.zeros((len(self.cards) * 2 + 4,))
+
+    def _seed(self, seed):
+        pass
 
     def _step(self, action):
 
@@ -149,21 +163,34 @@ class WattenEnv(gym.Env):
 
         return self._obs()
 
+    def get_state(self):
+        return self.cards_left[:], self.current_player, self.table_card, None if self.lastTrick is None else self.lastTrick[:], self.players[0].get_state(), self.players[1].get_state()
+
+    def set_state(self, state):
+        self.cards_left = state[0][:]
+        self.current_player = state[1]
+        self.table_card = state[2]
+        self.lastTrick = None if state[3] is None else state[3][:]
+        self.players[0].set_state(state[4])
+        self.players[1].set_state(state[5])
+
     def _obs(self):
-        obs = []
         player = self.players[self.current_player]
 
-        for card in self.cards:
-            obs.append(1 if card in player.hand_cards else 0)
+        self.obs.fill(0)
+        for card in player.hand_cards:
+            self.obs[card.id] = 1
 
-        for card in self.cards:
-            obs.append(1 if card is self.table_card else 0)
+        if self.table_card is not None:
+            self.obs[32 + self.table_card.id] = 1
 
-        obs.extend(player.get_trick_array())
-        obs.extend(self.players[1 - self.current_player].get_trick_array())
+        self.obs[-4] = (player.tricks == 1 or player.tricks == 3)
+        self.obs[-3] = (player.tricks == 2 or player.tricks == 3)
 
-        return obs
+        self.obs[-2] = (self.players[1 - self.current_player].tricks == 1 or self.players[1 - self.current_player].tricks == 3)
+        self.obs[-1] = (self.players[1 - self.current_player].tricks == 2 or self.players[1 - self.current_player].tricks == 3)
 
+        return self.obs
 
     def _filename_from_card(self, card):
         filename = ""
