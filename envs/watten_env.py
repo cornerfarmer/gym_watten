@@ -5,7 +5,7 @@ from gym import error, spaces, utils
 from gym.utils import seeding
 from enum import Enum
 
-from gym.envs.classic_control import rendering
+#from gym.envs.classic_control import rendering
 
 import numpy as np
 
