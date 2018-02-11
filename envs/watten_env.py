@@ -5,26 +5,26 @@ from gym import error, spaces, utils
 from gym.utils import seeding
 from enum import Enum
 
-#from gym.envs.classic_control import rendering
+from gym.envs.classic_control import rendering
 
 import numpy as np
 
 class Color(Enum):
-    EICHEL = 1
-    GRUEN = 2
-    HERZ = 3
-    SCHELLN = 4
+    EICHEL = 0
+    GRUEN = 1
+    HERZ = 2
+    SCHELLN = 3
 
 
 class Value(Enum):
-    SAU = 8
-    KOENIG = 7
-    OBER = 6
-    UNTER = 5
-    ZEHN = 4
-    NEUN = 3
-    ACHT = 2
-    SIEBEN = 1
+    SAU = 7
+    KOENIG = 6
+    OBER = 5
+    UNTER = 4
+    ZEHN = 3
+    NEUN = 2
+    ACHT = 1
+    SIEBEN = 0
 
 
 class Card:
@@ -66,7 +66,7 @@ class WattenEnv(gym.Env):
         self._number_of_cards = 32
         self._number_of_hand_cards = 5
         self.action_space = spaces.Discrete(self._number_of_cards)
-        self.observation_space = spaces.Box(0, 1, [self._number_of_cards * 2 + 4])
+        self.observation_space = spaces.Tuple((spaces.Box(0, 1, [4, 8, 2]), spaces.Box(0, 1, [4])))
         self.steps = 0
         self.cards = []
         for c in Color:
@@ -77,7 +77,7 @@ class WattenEnv(gym.Env):
         self.table_card = None
         self.viewer = None
         self.lastTrick = None
-        self.obs = np.zeros((len(self.cards) * 2 + 4,))
+        self.obs = [np.zeros([4, 8, 2]), np.zeros([4])]
 
     def _seed(self, seed):
         pass
@@ -137,14 +137,15 @@ class WattenEnv(gym.Env):
 
     def _get_value(self, card, first_card):
         if card.color is Color.HERZ and card.value is Value.KOENIG:
-            return 11
+            return 18
         elif card.color is Color.SCHELLN and card.value is Value.SIEBEN:
-            return 10
+            return 17
         elif card.color is Color.EICHEL and card.value is Value.SIEBEN:
-            return 9
-
-        if card.color is first_card.color:
-            return int(card.value.value)
+            return 16
+        if card.color is Color.HERZ:
+            return int(card.value.value) + 9
+        elif card.color is first_card.color:
+            return int(card.value.value) + 1
         else:
             return 0
 
@@ -177,18 +178,18 @@ class WattenEnv(gym.Env):
     def _obs(self):
         player = self.players[self.current_player]
 
-        self.obs.fill(0)
+        self.obs[0].fill(0)
         for card in player.hand_cards:
-            self.obs[card.id] = 1
+            self.obs[0][card.color.value][card.value.value][0] = 1
 
         if self.table_card is not None:
-            self.obs[32 + self.table_card.id] = 1
+            self.obs[0][self.table_card.color.value][self.table_card.value.value][1] = 1
 
-        self.obs[-4] = (player.tricks == 1 or player.tricks == 3)
-        self.obs[-3] = (player.tricks == 2 or player.tricks == 3)
+        self.obs[1][0] = (player.tricks == 1 or player.tricks == 3)
+        self.obs[1][1] = (player.tricks == 2 or player.tricks == 3)
 
-        self.obs[-2] = (self.players[1 - self.current_player].tricks == 1 or self.players[1 - self.current_player].tricks == 3)
-        self.obs[-1] = (self.players[1 - self.current_player].tricks == 2 or self.players[1 - self.current_player].tricks == 3)
+        self.obs[1][2] = (self.players[1 - self.current_player].tricks == 1 or self.players[1 - self.current_player].tricks == 3)
+        self.obs[1][3] = (self.players[1 - self.current_player].tricks == 2 or self.players[1 - self.current_player].tricks == 3)
 
         return self.obs
 
