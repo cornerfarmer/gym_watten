@@ -192,6 +192,9 @@ class WattenEnv(gym.Env):
 
         return self.obs
 
+    def regenerate_obs(self):
+        return self._obs()
+
     def _filename_from_card(self, card):
         filename = ""
         if card.color is Color.EICHEL:
