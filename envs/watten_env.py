@@ -66,7 +66,7 @@ class WattenEnv(gym.Env):
         self._number_of_cards = 32
         self._number_of_hand_cards = 5
         self.action_space = spaces.Discrete(self._number_of_cards)
-        self.observation_space = spaces.Tuple((spaces.Box(0, 1, [4, 8, 3]), spaces.Box(0, 1, [4])))
+        self.observation_space = spaces.Tuple((spaces.Box(0, 1, [4, 8, 2]), spaces.Box(0, 1, [4])))
         self.steps = 0
         self.cards = []
         for c in Color:
@@ -77,7 +77,7 @@ class WattenEnv(gym.Env):
         self.table_card = None
         self.viewer = None
         self.lastTrick = None
-        self.obs = [np.zeros([4, 8, 3]), np.zeros([4])]
+        self.obs = [np.zeros([4, 8, 2]), np.zeros([4])]
 
     def _seed(self, seed):
         pass
@@ -185,8 +185,8 @@ class WattenEnv(gym.Env):
         if self.table_card is not None:
             self.obs[0][self.table_card.color.value][self.table_card.value.value][1] = 1
 
-        for card in self.players[1 - self.current_player].hand_cards:
-            self.obs[0][card.color.value][card.value.value][2] = 1
+        #for card in self.players[1 - self.current_player].hand_cards:
+        #    self.obs[0][card.color.value][card.value.value][2] = 1
 
         self.obs[1][0] = (player.tricks == 1 or player.tricks == 3)
         self.obs[1][1] = (player.tricks == 2 or player.tricks == 3)
