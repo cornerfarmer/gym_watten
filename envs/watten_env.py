@@ -64,13 +64,13 @@ class WattenEnv(gym.Env):
 
     def __init__(self):
         self._number_of_cards = 32
-        self._number_of_hand_cards = 5
+        self._number_of_hand_cards = 3
         self.action_space = spaces.Discrete(self._number_of_cards)
         self.observation_space = spaces.Tuple((spaces.Box(0, 1, [4, 8, 2]), spaces.Box(0, 1, [4])))
         self.steps = 0
         self.cards = []
-        for c in Color:
-            for v in Value:
+        for c in [Color.EICHEL, Color.GRUEN]:
+            for v in [Value.SAU, Value.KOENIG, Value.OBER, Value.UNTER]:
                 self.cards.append(Card(c, v, len(self.cards)))
         self.players = [Player(), Player()]
         self.current_player = 0
@@ -136,13 +136,13 @@ class WattenEnv(gym.Env):
             return 1
 
     def _get_value(self, card, first_card):
-        if card.color is Color.HERZ and card.value is Value.KOENIG:
+        if False and card.color is Color.HERZ and card.value is Value.KOENIG:
             return 18
-        elif card.color is Color.SCHELLN and card.value is Value.SIEBEN:
+        elif False and card.color is Color.SCHELLN and card.value is Value.SIEBEN:
             return 17
-        elif card.color is Color.EICHEL and card.value is Value.SIEBEN:
+        elif False and card.color is Color.EICHEL and card.value is Value.SIEBEN:
             return 16
-        if card.color is Color.HERZ:
+        if False and card.color is Color.HERZ:
             return int(card.value.value) + 9
         elif card.color is first_card.color:
             return int(card.value.value) + 1
