@@ -60,11 +60,13 @@ cdef class WattenEnv:
     cdef vector[Card*] cards_left
     cdef Observation obs
     cdef object render_card_trans
+    cdef int last_winner
+    cdef bool invalid_move
 
-
-    cdef Observation _step(self, int action)
-    cdef bool _is_done(self)
-    cdef list _act(self, int action, Player* player)
+    cdef void seed(self, unsigned int seed)
+    cdef Observation step(self, int action)
+    cdef bool is_done(self)
+    cdef void _act(self, int action, Player* player)
     cdef int _match(self, Card* first_card, Card* second_card)
     cdef int _get_value(self, Card* card, Card* first_card)
     cdef Observation reset(self)

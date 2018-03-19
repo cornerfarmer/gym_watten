@@ -11,6 +11,7 @@ import numpy as np
 from libcpp.vector cimport vector
 from libcpp.string cimport string
 from libcpp cimport bool
+from libc.stdlib cimport srand
 from cpython.mem cimport PyMem_Malloc, PyMem_Realloc, PyMem_Free
 import sys
 cdef enum Color:
@@ -102,12 +103,14 @@ cdef class WattenEnv:
     cdef vector[Card*] cards_left
     cdef Observation obs
     cdef object render_card_trans
+    cdef int last_winner
+    cdef bool invalid_move
 
     def __cinit__(self):
         self._number_of_cards = 32
         self._number_of_hand_cards = 3
         self.action_space = spaces.Discrete(self._number_of_cards)
-        self.observation_space = spaces.Tuple((spaces.Box(0, 1, [4, 8, 2]), spaces.Box(0, 1, [4])))
+        self.observation_space = spaces.Tuple((spaces.Box(0, 1, [4, 8, 2], dtype=np.float32), spaces.Box(0, 1, [4], dtype=np.float32)))
         self.steps = 0
         for c in [Color.EICHEL, Color.GRUEN]:
             for v in [Value.SAU, Value.KOENIG, Value.OBER, Value.UNTER]:
@@ -128,21 +131,19 @@ cdef class WattenEnv:
         for i in range(2):
             self.players.push_back(&self.player_storage[i])
 
-    def _seed(self, seed):
-        pass
+    cdef void seed(self, unsigned int seed):
+        srand(seed)
 
-    cdef Observation _step(self, int action):
-
-        reward = self._act(action, self.players[self.current_player])
-
+    cdef Observation step(self, int action):
+        self._act(action, self.players[self.current_player])
         return self._obs()
 
-    cdef bool _is_done(self):
-        return self.players[0].hand_cards.size() + self.players[1].hand_cards.size() == 0 or self.players[0].tricks == 2 or self.players[1].tricks == 2
+    cdef bool is_done(self):
+        return self.players[0].hand_cards.size() + self.players[1].hand_cards.size() == 0 or self.players[0].tricks == 2 or self.players[1].tricks == 2 or self.invalid_move
 
-    cdef list _act(self, int action, Player* player):
+    cdef void _act(self, int action, Player* player):
         cdef Card* card
-        if action is None:
+        if action is -1:
             card = player.hand_cards[0]
         else:
             card = self.cards[action]
@@ -150,36 +151,28 @@ cdef class WattenEnv:
         pos = find(player.hand_cards.begin(), player.hand_cards.end(), card)
         if pos != player.hand_cards.end():
             player.hand_cards.erase(pos)
+            self.invalid_move = False
 
             if self.table_card is NULL:
                 self.table_card = card
 
                 self.current_player = 1 - self.current_player
-
-                return []
             else:
-
-                reward = [0, 0]
-
                 better_player = self._match(self.table_card, card)
-                reward[1 - better_player] = 1
 
                 if better_player == 0:
                     self.current_player = 1 - self.current_player
 
                 self.players[self.current_player].tricks += 1
                 if self.players[self.current_player].tricks == 2:
-                    reward[1 - better_player] += 5
+                    self.last_winner = self.current_player
 
                 self.lastTrick[0] = self.table_card
                 self.lastTrick[1] = card
                 self.table_card = NULL
-                return reward
         else:
-            if self.table_card is NULL:
-                return [-1]
-            else:
-                return [-1]
+            self.invalid_move = True
+            self.last_winner = 1 - self.current_player
 
     cdef int _match(self, Card* first_card, Card* second_card):
         if self._get_value(first_card, first_card) >= self._get_value(second_card, first_card):
@@ -218,6 +211,7 @@ cdef class WattenEnv:
         self.table_card = NULL
         self.lastTrick[0] = NULL
         self.lastTrick[1] = NULL
+        self.invalid_move = False
 
         return self._obs()
 
@@ -242,6 +236,7 @@ cdef class WattenEnv:
         self.players[0].tricks = state.player0_tricks
         self.players[1].hand_cards = state.player1_hand_cards
         self.players[1].tricks = state.player1_tricks
+        self.invalid_move = False
 
     cdef Observation _obs(self):
         cdef Player* player = self.players[self.current_player]
