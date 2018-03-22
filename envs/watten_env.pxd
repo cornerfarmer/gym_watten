@@ -58,21 +58,20 @@ cdef class WattenEnv:
     cdef object viewer
     cdef vector[Card*] lastTrick
     cdef vector[Card*] cards_left
-    cdef Observation obs
     cdef object render_card_trans
     cdef int last_winner
     cdef bool invalid_move
 
     cdef void seed(self, unsigned int seed)
-    cdef Observation step(self, int action)
+    cdef void step(self, int action, Observation* obs=?)
     cdef bool is_done(self)
     cdef void _act(self, int action, Player* player)
     cdef int _match(self, Card* first_card, Card* second_card)
     cdef int _get_value(self, Card* card, Card* first_card)
-    cdef Observation reset(self)
+    cdef void reset(self, Observation* obs=?)
     cdef State get_state(self)
-    cdef void set_state(self, State state)
-    cdef Observation _obs(self)
-    cdef Observation regenerate_obs(self)
+    cdef void set_state(self, State* state)
+    cdef void _obs(self, Observation* obs)
+    cdef void regenerate_obs(self, Observation* obs)
     cdef string _filename_from_card(self, Card* card)
     cdef object _create_render_card(self, Card* card, int card_width, int card_height)

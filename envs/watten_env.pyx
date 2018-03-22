@@ -14,23 +14,6 @@ from libcpp cimport bool
 from libc.stdlib cimport srand
 from cpython.mem cimport PyMem_Malloc, PyMem_Realloc, PyMem_Free
 import sys
-cdef enum Color:
-    EICHEL = 0
-    GRUEN = 1
-    HERZ = 2
-    SCHELLN = 3
-
-
-cdef enum Value:
-    SAU = 7
-    KOENIG = 6
-    OBER = 5
-    UNTER = 4
-    ZEHN = 3
-    NEUN = 2
-    ACHT = 1
-    SIEBEN = 0
-
 
 cdef struct Card:
     Color color
@@ -87,24 +70,6 @@ ctypedef vector[Card*] card_vec
 
 cdef class WattenEnv:
     metadata = {'render.modes': ['human', 'rgb_array']}
-    cdef int _number_of_cards
-    cdef int _number_of_hand_cards
-    cdef object action_space
-    cdef object observation_space
-    cdef int steps
-    cdef vector[Card*] cards
-    cdef Player* player
-    cdef Player[2] player_storage
-    cdef vector[Player*] players
-    cdef int current_player
-    cdef Card* table_card
-    cdef object viewer
-    cdef vector[Card*] lastTrick
-    cdef vector[Card*] cards_left
-    cdef Observation obs
-    cdef object render_card_trans
-    cdef int last_winner
-    cdef bool invalid_move
 
     def __cinit__(self):
         self._number_of_cards = 32
@@ -134,9 +99,11 @@ cdef class WattenEnv:
     cdef void seed(self, unsigned int seed):
         srand(seed)
 
-    cdef Observation step(self, int action):
+    cdef void step(self, int action, Observation* obs=NULL):
         self._act(action, self.players[self.current_player])
-        return self._obs()
+
+        if obs != NULL:
+            self._obs(obs)
 
     cdef bool is_done(self):
         return self.players[0].hand_cards.size() + self.players[1].hand_cards.size() == 0 or self.players[0].tricks == 2 or self.players[1].tricks == 2 or self.invalid_move
@@ -194,7 +161,7 @@ cdef class WattenEnv:
         else:
             return 0
 
-    cdef Observation reset(self):
+    cdef void reset(self, Observation* obs=NULL):
         self.cards_left = self.cards
         random_shuffle(self.cards_left.begin(), self.cards_left.end())
 
@@ -213,7 +180,8 @@ cdef class WattenEnv:
         self.lastTrick[1] = NULL
         self.invalid_move = False
 
-        return self._obs()
+        if obs != NULL:
+            self._obs(obs)
 
     cdef State get_state(self):
         cdef State state
@@ -227,7 +195,7 @@ cdef class WattenEnv:
         state.player1_tricks = self.players[1].tricks
         return state
 
-    cdef void set_state(self, State state):
+    cdef void set_state(self, State* state):
         self.cards_left = state.cards_left
         self.current_player = state.current_player
         self.table_card = state.table_card
@@ -238,34 +206,33 @@ cdef class WattenEnv:
         self.players[1].tricks = state.player1_tricks
         self.invalid_move = False
 
-    cdef Observation _obs(self):
+    cdef void _obs(self, Observation* obs):
         cdef Player* player = self.players[self.current_player]
 
         cdef int i,j,k
         for i in range(4):
             for j in range(8):
                 for k in range(2):
-                    self.obs.hand_cards[i][j][k] = 0
+                    obs.hand_cards[i][j][k] = 0
 
         for card in player.hand_cards:
-            self.obs.hand_cards[<int>card.color][<int>card.value][0] = 1
+            obs.hand_cards[<int>card.color][<int>card.value][0] = 1
 
         if self.table_card is not NULL:
-            self.obs.hand_cards[<int>self.table_card.color][<int>self.table_card.value][1] = 1
+            obs.hand_cards[<int>self.table_card.color][<int>self.table_card.value][1] = 1
 
         #for card in self.players[1 - self.current_player].hand_cards:
         #    self.obs[0][card.color.value][card.value.value][2] = 1
 
-        self.obs.tricks[0] = (player.tricks == 1 or player.tricks == 3)
-        self.obs.tricks[1] = (player.tricks == 2 or player.tricks == 3)
+        obs.tricks[0] = (player.tricks == 1 or player.tricks == 3)
+        obs.tricks[1] = (player.tricks == 2 or player.tricks == 3)
 
-        self.obs.tricks[2] = (self.players[1 - self.current_player].tricks == 1 or self.players[1 - self.current_player].tricks == 3)
-        self.obs.tricks[3] = (self.players[1 - self.current_player].tricks == 2 or self.players[1 - self.current_player].tricks == 3)
+        obs.tricks[2] = (self.players[1 - self.current_player].tricks == 1 or self.players[1 - self.current_player].tricks == 3)
+        obs.tricks[3] = (self.players[1 - self.current_player].tricks == 2 or self.players[1 - self.current_player].tricks == 3)
 
-        return self.obs
 
-    cdef Observation regenerate_obs(self):
-        return self._obs()
+    cdef void regenerate_obs(self, Observation* obs):
+        self._obs(obs)
 
     cdef string _filename_from_card(self, Card* card):
         cdef string filename
