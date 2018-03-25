@@ -52,14 +52,14 @@ cdef struct State:
     vector[Card*] cards_left
     int current_player
     Card* table_card
-    vector[Card*] lastTrick
+    vector[Card*] last_tricks
     vector[Card*] player0_hand_cards
     int player0_tricks
     vector[Card*] player1_hand_cards
     int player1_tricks
 
 cdef struct Observation:
-    int hand_cards[4][8][2]
+    int hand_cards[4][8][6]
     int tricks[4]
 
 cdef extern from "<algorithm>" namespace "std":
@@ -75,7 +75,7 @@ cdef class WattenEnv:
         self._number_of_cards = 32
         self._number_of_hand_cards = 3
         self.action_space = spaces.Discrete(self._number_of_cards)
-        self.observation_space = spaces.Tuple((spaces.Box(0, 1, [4, 8, 2], dtype=np.float32), spaces.Box(0, 1, [4], dtype=np.float32)))
+        self.observation_space = spaces.Tuple((spaces.Box(0, 1, [4, 8, 6], dtype=np.float32), spaces.Box(0, 1, [4], dtype=np.float32)))
         self.steps = 0
         for c in [Color.EICHEL, Color.GRUEN]:
             for v in [Value.SAU, Value.KOENIG, Value.OBER, Value.UNTER]:
@@ -90,7 +90,6 @@ cdef class WattenEnv:
         self.viewer = None
         #self.obs.hand_cards = np.zeros([4, 8, 2])
         #self.obs.tricks = np.zeros([4])
-        self.lastTrick.resize(2)
         self.render_card_trans = {}
 
         for i in range(2):
@@ -125,6 +124,13 @@ cdef class WattenEnv:
 
                 self.current_player = 1 - self.current_player
             else:
+                if self.current_player == 1:
+                    self.last_tricks.push_back(self.table_card)
+                    self.last_tricks.push_back(card)
+                else:
+                    self.last_tricks.push_back(card)
+                    self.last_tricks.push_back(self.table_card)
+
                 better_player = self._match(self.table_card, card)
 
                 if better_player == 0:
@@ -134,8 +140,6 @@ cdef class WattenEnv:
                 if self.players[self.current_player].tricks == 2:
                     self.last_winner = self.current_player
 
-                self.lastTrick[0] = self.table_card
-                self.lastTrick[1] = card
                 self.table_card = NULL
         else:
             self.invalid_move = True
@@ -176,8 +180,7 @@ cdef class WattenEnv:
 
         self.current_player = 0
         self.table_card = NULL
-        self.lastTrick[0] = NULL
-        self.lastTrick[1] = NULL
+        self.last_tricks.clear()
         self.invalid_move = False
 
         if obs != NULL:
@@ -188,7 +191,7 @@ cdef class WattenEnv:
         state.cards_left = self.cards_left
         state.current_player = self.current_player
         state.table_card = self.table_card
-        state.lastTrick = self.lastTrick
+        state.last_tricks = self.last_tricks
         state.player0_hand_cards = self.players[0].hand_cards
         state.player0_tricks = self.players[0].tricks
         state.player1_hand_cards = self.players[1].hand_cards
@@ -199,7 +202,7 @@ cdef class WattenEnv:
         self.cards_left = state.cards_left
         self.current_player = state.current_player
         self.table_card = state.table_card
-        self.lastTrick = state.lastTrick
+        self.last_tricks = state.last_tricks
         self.players[0].hand_cards = state.player0_hand_cards
         self.players[0].tricks = state.player0_tricks
         self.players[1].hand_cards = state.player1_hand_cards
@@ -212,7 +215,7 @@ cdef class WattenEnv:
         cdef int i,j,k
         for i in range(4):
             for j in range(8):
-                for k in range(2):
+                for k in range(6):
                     obs.hand_cards[i][j][k] = 0
 
         for card in player.hand_cards:
@@ -220,6 +223,9 @@ cdef class WattenEnv:
 
         if self.table_card is not NULL:
             obs.hand_cards[<int>self.table_card.color][<int>self.table_card.value][1] = 1
+
+        for i in range(max(0, <int>self.last_tricks.size() - 4), self.last_tricks.size()):
+            obs.hand_cards[<int>self.last_tricks[i].color][<int>self.last_tricks[i].value][2 + ((self.last_tricks.size() - 1) / 2 - i / 2) * 2 + ((1 - i % 2) if self.current_player == 1 else (i % 2))] = 1
 
         #for card in self.players[1 - self.current_player].hand_cards:
         #    self.obs[0][card.color.value][card.value.value][2] = 1
@@ -305,8 +311,8 @@ cdef class WattenEnv:
 
         if self.table_card is not NULL:
             self.render_card_trans[self.table_card.id].set_translation(screen_width / 2 - card_width / 4 * 3, screen_height / 2 - card_height / 4)
-        elif self.lastTrick[0] is not NULL:
-            self.render_card_trans[self.lastTrick[0].id].set_translation(screen_width / 2 - card_width / 4 * 3, screen_height / 2 - card_height / 4)
-            self.render_card_trans[self.lastTrick[1].id].set_translation(screen_width / 2 - card_width / 4 * 1, screen_height / 2 + card_height / 4)
+        elif self.last_tricks.size() >= 2:
+            self.render_card_trans[self.last_tricks[0].id].set_translation(screen_width / 2 - card_width / 4 * 3, screen_height / 2 - card_height / 4)
+            self.render_card_trans[self.last_tricks[1].id].set_translation(screen_width / 2 - card_width / 4 * 1, screen_height / 2 + card_height / 4)
 
         return self.viewer.render()

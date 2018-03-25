@@ -33,14 +33,14 @@ cdef struct State:
     vector[Card*] cards_left
     int current_player
     Card* table_card
-    vector[Card*] lastTrick
+    vector[Card*] last_tricks
     vector[Card*] player0_hand_cards
     int player0_tricks
     vector[Card*] player1_hand_cards
     int player1_tricks
 
 cdef struct Observation:
-    int hand_cards[4][8][2]
+    int hand_cards[4][8][6]
     int tricks[4]
 
 cdef class WattenEnv:
@@ -56,7 +56,7 @@ cdef class WattenEnv:
     cdef int current_player
     cdef Card* table_card
     cdef object viewer
-    cdef vector[Card*] lastTrick
+    cdef vector[Card*] last_tricks
     cdef vector[Card*] cards_left
     cdef object render_card_trans
     cdef int last_winner
