@@ -71,14 +71,22 @@ ctypedef vector[Card*] card_vec
 cdef class WattenEnv:
     metadata = {'render.modes': ['human', 'rgb_array']}
 
-    def __cinit__(self):
+    def __cinit__(self, bool minimal=False):
         self._number_of_cards = 32
         self._number_of_hand_cards = 3
         self.action_space = spaces.Discrete(self._number_of_cards)
         self.observation_space = spaces.Tuple((spaces.Box(0, 1, [4, 8, 6], dtype=np.float32), spaces.Box(0, 1, [4], dtype=np.float32)))
         self.steps = 0
-        for c in [Color.EICHEL, Color.GRUEN]:
-            for v in [Value.SAU, Value.KOENIG, Value.OBER, Value.UNTER]:
+
+        if minimal:
+            colors = [Color.EICHEL, Color.GRUEN]
+            values = [Value.SAU, Value.KOENIG, Value.OBER, Value.UNTER]
+        else:
+            colors = [Color.EICHEL, Color.GRUEN, Color.HERZ, Color.SCHELLN]
+            values = [Value.SAU, Value.KOENIG, Value.OBER, Value.UNTER, Value.ZEHN, Value.NEUN, Value.ACHT, Value.SIEBEN]
+
+        for c in colors:
+            for v in values:
                 card = <Card *>PyMem_Malloc(sizeof(Card))
                 card.color = c
                 card.value = v
