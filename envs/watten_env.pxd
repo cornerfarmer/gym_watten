@@ -61,6 +61,7 @@ cdef class WattenEnv:
     cdef object render_card_trans
     cdef int last_winner
     cdef bool invalid_move
+    cdef bool minimal
 
     cdef void seed(self, unsigned int seed)
     cdef void step(self, int action, Observation* obs=?)

@@ -96,6 +96,7 @@ cdef class WattenEnv:
         self.current_player = 0
         self.table_card = NULL
         self.viewer = None
+        self.minimal = minimal
         #self.obs.hand_cards = np.zeros([4, 8, 2])
         #self.obs.tricks = np.zeros([4])
         self.render_card_trans = {}
@@ -160,13 +161,13 @@ cdef class WattenEnv:
             return 1
 
     cdef int _get_value(self, Card* card, Card* first_card):
-        if False and card.color is Color.HERZ and card.value is Value.KOENIG:
+        if not self.minimal and card.color is Color.HERZ and card.value is Value.KOENIG:
             return 18
-        elif False and card.color is Color.SCHELLN and card.value is Value.SIEBEN:
+        elif not self.minimal and card.color is Color.SCHELLN and card.value is Value.SIEBEN:
             return 17
-        elif False and card.color is Color.EICHEL and card.value is Value.SIEBEN:
+        elif not self.minimal and card.color is Color.EICHEL and card.value is Value.SIEBEN:
             return 16
-        if False and card.color is Color.HERZ:
+        if not self.minimal and card.color is Color.HERZ:
             return card.value + 9
         elif card.color is first_card.color:
             return card.value + 1
