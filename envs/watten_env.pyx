@@ -59,8 +59,8 @@ cdef struct State:
     int player1_tricks
 
 cdef struct Observation:
-    int hand_cards[4][8][6]
-    int tricks[4]
+    vector[hand_card_set] sets#[4][8][6]
+    vector[int] scalars#[4]
 
 cdef extern from "<algorithm>" namespace "std":
     Iter find[Iter, T](Iter first, Iter last, const T& value)
@@ -103,6 +103,7 @@ cdef class WattenEnv:
 
         for i in range(2):
             self.players.push_back(&self.player_storage[i])
+
 
     cdef void seed(self, unsigned int seed):
         srand(seed)
@@ -222,28 +223,32 @@ cdef class WattenEnv:
         cdef Player* player = self.players[self.current_player]
 
         cdef int i,j,k
-        for i in range(4):
-            for j in range(8):
-                for k in range(6):
-                    obs.hand_cards[i][j][k] = 0
+        obs.sets.resize(4)
+        for i in range(obs.sets.size()):
+            obs.sets[i].resize(8)
+            for j in range(obs.sets[i].size()):
+                obs.sets[i][j].resize(6)
+                for k in range(obs.sets[i][j].size()):
+                    obs.sets[i][j][k] = 0
 
         for card in player.hand_cards:
-            obs.hand_cards[<int>card.color][<int>card.value][0] = 1
+            obs.sets[<int>card.color][<int>card.value][0] = 1
 
         if self.table_card is not NULL:
-            obs.hand_cards[<int>self.table_card.color][<int>self.table_card.value][1] = 1
+            obs.sets[<int>self.table_card.color][<int>self.table_card.value][1] = 1
 
         for i in range(max(0, <int>self.last_tricks.size() - 4), self.last_tricks.size()):
-            obs.hand_cards[<int>self.last_tricks[i].color][<int>self.last_tricks[i].value][2 + ((self.last_tricks.size() - 1) / 2 - i / 2) * 2 + ((1 - i % 2) if self.current_player == 1 else (i % 2))] = 1
+            obs.sets[<int>self.last_tricks[i].color][<int>self.last_tricks[i].value][2 + ((self.last_tricks.size() - 1) / 2 - i / 2) * 2 + ((1 - i % 2) if self.current_player == 1 else (i % 2))] = 1
 
         #for card in self.players[1 - self.current_player].hand_cards:
         #    self.obs[0][card.color.value][card.value.value][2] = 1
 
-        obs.tricks[0] = (player.tricks == 1 or player.tricks == 3)
-        obs.tricks[1] = (player.tricks == 2 or player.tricks == 3)
+        obs.scalars.resize(4)
+        obs.scalars[0] = (player.tricks == 1 or player.tricks == 3)
+        obs.scalars[1] = (player.tricks == 2 or player.tricks == 3)
 
-        obs.tricks[2] = (self.players[1 - self.current_player].tricks == 1 or self.players[1 - self.current_player].tricks == 3)
-        obs.tricks[3] = (self.players[1 - self.current_player].tricks == 2 or self.players[1 - self.current_player].tricks == 3)
+        obs.scalars[2] = (self.players[1 - self.current_player].tricks == 1 or self.players[1 - self.current_player].tricks == 3)
+        obs.scalars[3] = (self.players[1 - self.current_player].tricks == 2 or self.players[1 - self.current_player].tricks == 3)
 
 
     cdef void regenerate_obs(self, Observation* obs):

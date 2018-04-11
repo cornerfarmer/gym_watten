@@ -39,9 +39,12 @@ cdef struct State:
     vector[Card*] player1_hand_cards
     int player1_tricks
 
+ctypedef vector[int] hand_card_row
+ctypedef vector[hand_card_row] hand_card_set
+
 cdef struct Observation:
-    int hand_cards[4][8][6]
-    int tricks[4]
+    vector[hand_card_set] sets#[4][8][6]
+    vector[int] scalars#[4]
 
 cdef class WattenEnv:
     cdef int _number_of_cards
