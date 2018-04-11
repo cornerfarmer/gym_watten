@@ -73,7 +73,7 @@ cdef class WattenEnv:
 
     def __cinit__(self, bool minimal=False):
         self._number_of_cards = 32
-        self._number_of_hand_cards = 3
+        self._number_of_hand_cards = 3 if minimal else 5
         self.action_space = spaces.Discrete(self._number_of_cards)
         self.observation_space = spaces.Tuple((spaces.Box(0, 1, [4, 8, 6], dtype=np.float32), spaces.Box(0, 1, [4], dtype=np.float32)))
         self.steps = 0
@@ -114,7 +114,7 @@ cdef class WattenEnv:
             self._obs(obs)
 
     cdef bool is_done(self):
-        return self.players[0].hand_cards.size() + self.players[1].hand_cards.size() == 0 or self.players[0].tricks == 2 or self.players[1].tricks == 2 or self.invalid_move
+        return self.players[0].hand_cards.size() + self.players[1].hand_cards.size() == 0 or self.players[0].tricks == (2 if self.minimal else 3) or self.players[1].tricks == (2 if self.minimal else 3) or self.invalid_move
 
     cdef void _act(self, int action, Player* player):
         cdef Card* card
