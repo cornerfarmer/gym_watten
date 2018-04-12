@@ -75,8 +75,9 @@ cdef class WattenEnv:
         self._number_of_cards = 32
         self._number_of_hand_cards = 3 if minimal else 5
         self.action_space = spaces.Discrete(self._number_of_cards)
-        self.observation_space = spaces.Tuple((spaces.Box(0, 1, [4, 8, 6], dtype=np.float32), spaces.Box(0, 1, [4], dtype=np.float32)))
+        self.observation_space = spaces.Tuple((spaces.Box(0, 1, [4, 8, 2 + self._number_of_hand_cards], dtype=np.float32), spaces.Box(0, 1, [4], dtype=np.float32)))
         self.steps = 0
+        self.max_number_of_tricks = 4 if minimal else 8
 
         if minimal:
             colors = [Color.EICHEL, Color.GRUEN]
@@ -147,7 +148,7 @@ cdef class WattenEnv:
                     self.current_player = 1 - self.current_player
 
                 self.players[self.current_player].tricks += 1
-                if self.players[self.current_player].tricks == 2:
+                if self.players[self.current_player].tricks == (2 if self.minimal else 3):
                     self.last_winner = self.current_player
 
                 self.table_card = NULL
@@ -227,7 +228,7 @@ cdef class WattenEnv:
         for i in range(obs.sets.size()):
             obs.sets[i].resize(8)
             for j in range(obs.sets[i].size()):
-                obs.sets[i][j].resize(6)
+                obs.sets[i][j].resize(2 + self.max_number_of_tricks)
                 for k in range(obs.sets[i][j].size()):
                     obs.sets[i][j][k] = 0
 
@@ -237,7 +238,7 @@ cdef class WattenEnv:
         if self.table_card is not NULL:
             obs.sets[<int>self.table_card.color][<int>self.table_card.value][1] = 1
 
-        for i in range(max(0, <int>self.last_tricks.size() - 4), self.last_tricks.size()):
+        for i in range(max(0, <int>self.last_tricks.size() - self.max_number_of_tricks), self.last_tricks.size()):
             obs.sets[<int>self.last_tricks[i].color][<int>self.last_tricks[i].value][2 + ((self.last_tricks.size() - 1) / 2 - i / 2) * 2 + ((1 - i % 2) if self.current_player == 1 else (i % 2))] = 1
 
         #for card in self.players[1 - self.current_player].hand_cards:

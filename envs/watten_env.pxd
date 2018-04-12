@@ -65,6 +65,7 @@ cdef class WattenEnv:
     cdef int last_winner
     cdef bool invalid_move
     cdef bool minimal
+    cdef public int max_number_of_tricks
 
     cdef void seed(self, unsigned int seed)
     cdef void step(self, int action, Observation* obs=?)
