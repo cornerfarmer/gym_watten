@@ -19,7 +19,6 @@ cdef enum Value:
     ACHT = 1
     SIEBEN = 0
 
-
 cdef struct Card:
     Color color
     Value value
@@ -38,13 +37,22 @@ cdef struct State:
     int player0_tricks
     vector[Card*] player1_hand_cards
     int player1_tricks
+    ActionType type
+    Value chosen_value
+    Color chosen_color
 
 ctypedef vector[int] hand_card_row
 ctypedef vector[hand_card_row] hand_card_set
 
+cdef enum ActionType:
+    CHOOSE_VALUE = 0
+    CHOOSE_COLOR = 1
+    DRAW_CARD = 2
+
 cdef struct Observation:
     vector[hand_card_set] sets#[4][8][6]
     vector[int] scalars#[4]
+    ActionType type
 
 cdef class WattenEnv:
     cdef int _number_of_cards
@@ -66,6 +74,9 @@ cdef class WattenEnv:
     cdef bool invalid_move
     cdef bool minimal
     cdef public int max_number_of_tricks
+    cdef ActionType next_action_type
+    cdef Value chosen_value
+    cdef Color chosen_color
 
     cdef void seed(self, unsigned int seed)
     cdef void step(self, int action, Observation* obs=?)
@@ -80,3 +91,4 @@ cdef class WattenEnv:
     cdef void regenerate_obs(self, Observation* obs)
     cdef string _filename_from_card(self, Card* card)
     cdef object _create_render_card(self, Card* card, int card_width, int card_height)
+    cpdef int get_input_sets_size(self, ActionType)
