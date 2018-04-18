@@ -11,7 +11,7 @@ import numpy as np
 from libcpp.vector cimport vector
 from libcpp.string cimport string
 from libcpp cimport bool
-from libc.stdlib cimport srand
+from libc.stdlib cimport srand, rand
 from cpython.mem cimport PyMem_Malloc, PyMem_Realloc, PyMem_Free
 import sys
 
@@ -213,7 +213,9 @@ cdef class WattenEnv:
         self.table_card = NULL
         self.last_tricks.clear()
         self.invalid_move = False
-        self.next_action_type = ActionType.DRAW_CARD if self.minimal else ActionType.CHOOSE_VALUE
+        self.next_action_type = ActionType.DRAW_CARD#ActionType.DRAW_CARD if self.minimal else ActionType.CHOOSE_VALUE
+        self.chosen_color = <Color>(rand() % 4)
+        self.chosen_value = <Value>(rand() % 8)
 
         if obs != NULL:
             self._obs(obs)
