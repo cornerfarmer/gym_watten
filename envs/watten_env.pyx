@@ -213,7 +213,7 @@ cdef class WattenEnv:
         self.table_card = NULL
         self.last_tricks.clear()
         self.invalid_move = False
-        self.next_action_type = ActionType.DRAW_CARD#ActionType.DRAW_CARD if self.minimal else ActionType.CHOOSE_VALUE
+        self.next_action_type = ActionType.DRAW_CARD if self.minimal else ActionType.CHOOSE_VALUE
         self.chosen_color = <Color>(rand() % 4)
         self.chosen_value = <Value>(rand() % 8)
 
