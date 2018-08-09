@@ -89,6 +89,6 @@ cdef class WattenEnv:
     cdef void set_state(self, State* state)
     cdef void _obs(self, Observation* obs)
     cdef void regenerate_obs(self, Observation* obs)
-    cdef string _filename_from_card(self, Card* card)
+    cdef string filename_from_card(self, Card* card)
     cdef object _create_render_card(self, Card* card, int card_width, int card_height)
     cpdef int get_input_sets_size(self, ActionType)

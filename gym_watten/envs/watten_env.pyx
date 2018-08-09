@@ -307,7 +307,7 @@ cdef class WattenEnv:
     cdef void regenerate_obs(self, Observation* obs):
         self._obs(obs)
 
-    cdef string _filename_from_card(self, Card* card):
+    cdef string filename_from_card(self, Card* card):
         cdef string filename
         if card.color is Color.EICHEL:
             filename += <char*>"E"
@@ -337,7 +337,7 @@ cdef class WattenEnv:
         return filename
 
     cdef object _create_render_card(self, Card* card, int card_width, int card_height):
-        image = rendering.Image("cards/" + self._filename_from_card(card).decode("utf-8") + ".png", card_width, card_height)
+        image = rendering.Image("cards/" + self.filename_from_card(card).decode("utf-8") + ".png", card_width, card_height)
         image.attrs.clear()
         return image
 
