@@ -61,6 +61,7 @@ cdef class WattenEnv:
     cdef object observation_space
     cdef int steps
     cdef vector[Card*] cards
+    cdef vector[Card*] all_cards
     cdef Player* player
     cdef Player[2] player_storage
     cdef vector[Player*] players

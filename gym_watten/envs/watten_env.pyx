@@ -84,20 +84,25 @@ cdef class WattenEnv:
         self.steps = 0
         self.max_number_of_tricks = 4 if minimal else 8
 
+        all_colors = [Color.EICHEL, Color.GRUEN, Color.HERZ, Color.SCHELLN]
+        all_values = [Value.SIEBEN, Value.ACHT, Value.NEUN, Value.ZEHN, Value.UNTER, Value.OBER, Value.KOENIG, Value.SAU]
+
         if minimal:
             colors = [Color.EICHEL, Color.GRUEN]
             values = [Value.SAU, Value.KOENIG, Value.OBER, Value.UNTER]
         else:
-            colors = [Color.EICHEL, Color.GRUEN, Color.HERZ, Color.SCHELLN]
-            values = [Value.SAU, Value.KOENIG, Value.OBER, Value.UNTER, Value.ZEHN, Value.NEUN, Value.ACHT, Value.SIEBEN]
+            colors = all_colors[:]
+            values = all_values[:]
 
-        for c in colors:
-            for v in values:
+        for c in all_colors:
+            for v in all_values:
                 card = <Card *>PyMem_Malloc(sizeof(Card))
                 card.color = c
                 card.value = v
-                card.id = self.cards.size()
-                self.cards.push_back(card)
+                card.id = self.all_cards.size()
+                self.all_cards.push_back(card)
+                if c in colors and v in values:
+                    self.cards.push_back(card)
 
         self.current_player = 0
         self.table_card = NULL
@@ -128,7 +133,7 @@ cdef class WattenEnv:
         if action is -1:
             card = player.hand_cards[0]
         else:
-            card = self.cards[action]
+            card = self.all_cards[action]
 
         if self.next_action_type == ActionType.CHOOSE_VALUE:
             self.chosen_value = card.value
