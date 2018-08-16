@@ -312,6 +312,37 @@ cdef class WattenEnv:
     cdef void regenerate_obs(self, Observation* obs):
         self._obs(obs)
 
+    cdef void _full_obs(self, Observation* obs):
+
+        cdef int i,j,k
+        obs.sets.resize(4)
+        for i in range(obs.sets.size()):
+            obs.sets[i].resize(8)
+            for j in range(obs.sets[i].size()):
+                obs.sets[i][j].resize(3)
+                for k in range(obs.sets[i][j].size()):
+                    obs.sets[i][j][k] = 0
+
+        for card in self.players[self.current_player].hand_cards:
+            obs.sets[<int>card.color][<int>card.value][0] = 1
+
+        for card in self.players[1 - self.current_player].hand_cards:
+            obs.sets[<int>card.color][<int>card.value][1] = 1
+
+        if self.table_card is not NULL:
+            obs.sets[<int>self.table_card.color][<int>self.table_card.value][2] = 1
+
+        obs.scalars.resize(4)
+        obs.scalars[0] = (self.players[self.current_player].tricks == 1 or self.players[self.current_player].tricks == 3)
+        obs.scalars[1] = (self.players[self.current_player].tricks == 2 or self.players[self.current_player].tricks == 3)
+
+        obs.scalars[2] = (self.players[1 - self.current_player].tricks == 1 or self.players[1 - self.current_player].tricks == 3)
+        obs.scalars[3] = (self.players[1 - self.current_player].tricks == 2 or self.players[1 - self.current_player].tricks == 3)
+
+
+    cdef void regenerate_full_obs(self, Observation* obs):
+        self._full_obs(obs)
+
     cdef string filename_from_card(self, Card* card):
         cdef string filename
         if card.color is Color.EICHEL:
