@@ -313,13 +313,14 @@ cdef class WattenEnv:
         self._obs(obs)
 
     cdef void _full_obs(self, Observation* obs):
+        cdef int number_of_sets = self.get_input_sets_size(self.next_action_type)
 
         cdef int i,j,k
         obs.sets.resize(4)
         for i in range(obs.sets.size()):
             obs.sets[i].resize(8)
             for j in range(obs.sets[i].size()):
-                obs.sets[i][j].resize(3)
+                obs.sets[i][j].resize(number_of_sets + 1)
                 for k in range(obs.sets[i][j].size()):
                     obs.sets[i][j][k] = 0
 
@@ -331,6 +332,10 @@ cdef class WattenEnv:
 
         if self.table_card is not NULL:
             obs.sets[<int>self.table_card.color][<int>self.table_card.value][2] = 1
+
+        for i in range(max(0, <int>self.last_tricks.size() - self.max_number_of_tricks), self.last_tricks.size()):
+            obs.sets[<int>self.last_tricks[i].color][<int>self.last_tricks[i].value][3 + ((self.last_tricks.size() - 1) / 2 - i / 2) * 2 + ((1 - i % 2) if self.current_player == 1 else (i % 2))] = 1
+
 
         obs.scalars.resize(4)
         obs.scalars[0] = (self.players[self.current_player].tricks == 1 or self.players[self.current_player].tricks == 3)
