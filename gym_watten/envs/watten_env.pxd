@@ -33,6 +33,7 @@ cdef struct State:
     int current_player
     Card* table_card
     vector[Card*] last_tricks
+    vector[int] last_tricks_players
     vector[Card*] player0_hand_cards
     int player0_tricks
     vector[Card*] player1_hand_cards
@@ -69,6 +70,7 @@ cdef class WattenEnv:
     cdef Card* table_card
     cdef object viewer
     cdef vector[Card*] last_tricks
+    cdef vector[int] last_tricks_players
     cdef vector[Card*] cards_left
     cdef object render_card_trans
     cdef int last_winner
@@ -95,3 +97,4 @@ cdef class WattenEnv:
     cdef string filename_from_card(self, Card* card)
     cdef object _create_render_card(self, Card* card, int card_width, int card_height)
     cpdef int get_input_sets_size(self, ActionType)
+    cpdef int get_input_scalars_size(self, ActionType action_type)

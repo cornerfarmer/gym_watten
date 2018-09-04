@@ -54,6 +54,7 @@ cdef struct State:
     int current_player
     Card* table_card
     vector[Card*] last_tricks
+    vector[int] last_tricks_players
     vector[Card*] player0_hand_cards
     int player0_tricks
     vector[Card*] player1_hand_cards
@@ -156,12 +157,11 @@ cdef class WattenEnv:
 
                     self.current_player = 1 - self.current_player
                 else:
-                    if self.current_player == 1:
-                        self.last_tricks.push_back(self.table_card)
-                        self.last_tricks.push_back(card)
-                    else:
-                        self.last_tricks.push_back(card)
-                        self.last_tricks.push_back(self.table_card)
+                    self.last_tricks.push_back(self.table_card)
+                    self.last_tricks.push_back(card)
+
+                    self.last_tricks_players.push_back(1 - self.current_player)
+                    self.last_tricks_players.push_back(self.current_player)
 
                     better_player = self._match(self.table_card, card)
 
@@ -218,6 +218,7 @@ cdef class WattenEnv:
         self.current_player = 0
         self.table_card = NULL
         self.last_tricks.clear()
+        self.last_tricks_players.clear()
         self.invalid_move = False
         self.next_action_type = ActionType.DRAW_CARD if self.minimal else ActionType.CHOOSE_VALUE
         self.chosen_color = <Color>(rand() % 4)
@@ -232,6 +233,7 @@ cdef class WattenEnv:
         state.current_player = self.current_player
         state.table_card = self.table_card
         state.last_tricks = self.last_tricks
+        state.last_tricks_players = self.last_tricks_players
         state.player0_hand_cards = self.players[0].hand_cards
         state.player0_tricks = self.players[0].tricks
         state.player1_hand_cards = self.players[1].hand_cards
@@ -246,6 +248,7 @@ cdef class WattenEnv:
         self.current_player = state.current_player
         self.table_card = state.table_card
         self.last_tricks = state.last_tricks
+        self.last_tricks_players = state.last_tricks_players
         self.players[0].hand_cards = state.player0_hand_cards
         self.players[0].tricks = state.player0_tricks
         self.players[1].hand_cards = state.player1_hand_cards
@@ -260,6 +263,12 @@ cdef class WattenEnv:
             return 2 + self.max_number_of_tricks + (2 if not self.minimal else 0)
         else:
             return 2
+
+    cpdef int get_input_scalars_size(self, ActionType action_type):
+        if action_type is ActionType.DRAW_CARD:
+            return 4 + self.max_number_of_tricks
+        else:
+            return 0
 
     cdef void _obs(self, Observation* obs):
         cdef Player* player = self.players[self.current_player]
@@ -281,8 +290,8 @@ cdef class WattenEnv:
             if self.table_card is not NULL:
                 obs.sets[<int>self.table_card.color][<int>self.table_card.value][1] = 1
 
-            for i in range(max(0, <int>self.last_tricks.size() - self.max_number_of_tricks), self.last_tricks.size()):
-                obs.sets[<int>self.last_tricks[i].color][<int>self.last_tricks[i].value][2 + ((self.last_tricks.size() - 1) / 2 - i / 2) * 2 + ((1 - i % 2) if self.current_player == 1 else (i % 2))] = 1
+            for i in range(min(self.max_number_of_tricks, self.last_tricks.size())):
+                obs.sets[<int>self.last_tricks[i].color][<int>self.last_tricks[i].value][2 + i] = 1
 
             if not self.minimal:
                 for color in [Color.EICHEL, Color.GRUEN, Color.HERZ, Color.SCHELLN]:
@@ -291,12 +300,16 @@ cdef class WattenEnv:
                 for value in [Value.SAU, Value.KOENIG, Value.OBER, Value.UNTER, Value.ZEHN, Value.NEUN, Value.ACHT, Value.SIEBEN]:
                     obs.sets[<int>self.chosen_color][<int>value][number_of_sets - 1] = 1
 
-            obs.scalars.resize(4)
+            obs.scalars.resize(4 + self.max_number_of_tricks)
             obs.scalars[0] = (player.tricks == 1 or player.tricks == 3)
             obs.scalars[1] = (player.tricks == 2 or player.tricks == 3)
 
             obs.scalars[2] = (self.players[1 - self.current_player].tricks == 1 or self.players[1 - self.current_player].tricks == 3)
             obs.scalars[3] = (self.players[1 - self.current_player].tricks == 2 or self.players[1 - self.current_player].tricks == 3)
+
+            for i in range(self.max_number_of_tricks):
+                obs.scalars[4 + i] = (self.last_tricks_players.size() > i and self.last_tricks_players[i] == self.current_player)
+
         else:
             if self.next_action_type is ActionType.CHOOSE_COLOR:
                 for color in [Color.EICHEL, Color.GRUEN, Color.HERZ, Color.SCHELLN]:
@@ -333,17 +346,19 @@ cdef class WattenEnv:
         if self.table_card is not NULL:
             obs.sets[<int>self.table_card.color][<int>self.table_card.value][2] = 1
 
-        for i in range(max(0, <int>self.last_tricks.size() - self.max_number_of_tricks), self.last_tricks.size()):
-            obs.sets[<int>self.last_tricks[i].color][<int>self.last_tricks[i].value][3 + ((self.last_tricks.size() - 1) / 2 - i / 2) * 2 + ((1 - i % 2) if self.current_player == 1 else (i % 2))] = 1
+        for i in range(min(self.max_number_of_tricks, self.last_tricks.size())):
+            obs.sets[<int>self.last_tricks[i].color][<int>self.last_tricks[i].value][3 + i] = 1
 
 
-        obs.scalars.resize(4)
+        obs.scalars.resize(4 + self.max_number_of_tricks)
         obs.scalars[0] = (self.players[self.current_player].tricks == 1 or self.players[self.current_player].tricks == 3)
         obs.scalars[1] = (self.players[self.current_player].tricks == 2 or self.players[self.current_player].tricks == 3)
 
         obs.scalars[2] = (self.players[1 - self.current_player].tricks == 1 or self.players[1 - self.current_player].tricks == 3)
         obs.scalars[3] = (self.players[1 - self.current_player].tricks == 2 or self.players[1 - self.current_player].tricks == 3)
 
+        for i in range(self.max_number_of_tricks):
+            obs.scalars[4 + i] = (self.last_tricks_players.size() > i and self.last_tricks_players[i] == self.current_player)
 
     cdef void regenerate_full_obs(self, Observation* obs):
         self._full_obs(obs)
