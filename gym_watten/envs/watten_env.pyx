@@ -157,11 +157,11 @@ cdef class WattenEnv:
 
                     self.current_player = 1 - self.current_player
                 else:
-                    self.last_tricks.push_back(self.table_card)
-                    self.last_tricks.push_back(card)
+                    self.last_tricks.insert(self.last_tricks.begin(), self.table_card)
+                    self.last_tricks.insert(self.last_tricks.begin(), card)
 
-                    self.last_tricks_players.push_back(1 - self.current_player)
-                    self.last_tricks_players.push_back(self.current_player)
+                    self.last_tricks_players.insert(self.last_tricks_players.begin(), 1 - self.current_player)
+                    self.last_tricks_players.insert(self.last_tricks_players.begin(), self.current_player)
 
                     better_player = self._match(self.table_card, card)
 
