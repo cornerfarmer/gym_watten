@@ -204,16 +204,28 @@ cdef class WattenEnv:
 
     cdef void reset(self, Observation* obs=NULL):
         self.cards_left = self.cards
+
+        self.players[0].hand_cards.clear()
+        self.players[0].hand_cards.push_back(self.cards_left[7])
+        self.cards_left.erase(self.cards_left.begin() + 7)
+        self.players[0].hand_cards.push_back(self.cards_left[2])
+        self.cards_left.erase(self.cards_left.begin() + 2)
+        self.players[0].hand_cards.push_back(self.cards_left[0])
+        self.cards_left.erase(self.cards_left.begin() + 0)
+
         random_shuffle(self.cards_left.begin(), self.cards_left.end())
 
         cdef Player* player
+        cdef int p = 0
         for player in self.players:
-            player.hand_cards.clear()
             player.tricks = 0
+            if p != 0:
+                player.hand_cards.clear()
 
-            for i in range(self._number_of_hand_cards):
-                player.hand_cards.push_back(self.cards_left.back())
-                self.cards_left.pop_back()
+                for i in range(self._number_of_hand_cards):
+                    player.hand_cards.push_back(self.cards_left.back())
+                    self.cards_left.pop_back()
+            p += 1
 
         self.current_player = 0
         self.table_card = NULL
